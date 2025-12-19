@@ -1,0 +1,227 @@
+{
+  "name": "Voiceflow Lead Integration - Sambora",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voiceflow-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-voiceflow",
+      "name": "Webhook - Voiceflow Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "voiceflow-lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract lead data from Voiceflow\nconst leadData = {\n  // Contact Information\n  name: $input.item.json.lead_name || 'Unknown',\n  email: $input.item.json.email || '',\n  \n  // Travel Details\n  travelDates: $input.item.json.travel_dates || 'Not specified',\n  groupSize: parseInt($input.item.json.group_size) || 0,\n  needPermits: $input.item.json.need_permits || 'Not asked',\n  \n  // Scoring & Intent\n  leadScore: parseInt($input.item.json.lead_score) || 0,\n  sessionId: $input.item.json.session_id || 'voiceflow_' + Date.now(),\n  \n  // Metadata\n  source: 'voiceflow',\n  timestamp: $input.item.json.timestamp || new Date().toISOString(),\n  conversationTranscript: $input.item.json.conversation_transcript || []\n};\n\n// Parse conversation to detect additional signals\nconst transcript = typeof leadData.conversationTranscript === 'string' \n  ? leadData.conversationTranscript \n  : JSON.stringify(leadData.conversationTranscript);\n\nconst transcriptLower = transcript.toLowerCase();\n\n// Enhanced intent detection\nconst intents = {\n  booking: /\\b(book|reserve|availability)\\b/i.test(transcript),\n  pricing: /\\b(cost|price|expensive|how much)\\b/i.test(transcript),\n  permits: /\\b(permit|gorilla permit)\\b/i.test(transcript),\n  accommodation: /\\b(room|accommodation|stay|lodge)\\b/i.test(transcript),\n  activities: /\\b(activities|things to do|what else)\\b/i.test(transcript),\n  packing: /\\b(pack|bring|wear)\\b/i.test(transcript),\n  timing: /\\b(when|best time|season)\\b/i.test(transcript)\n};\n\n// Extract additional data from conversation\nlet extractedData = {\n  hasSpecificDates: leadData.travelDates !== 'Not specified',\n  hasGroupSize: leadData.groupSize > 0,\n  hasEmail: leadData.email !== '',\n  \n  // Detect special requests\n  honeymoon: /\\b(honeymoon|wedding|anniversary)\\b/i.test(transcript),\n  familyTrip: /\\b(family|kids|children)\\b/i.test(transcript),\n  soloTraveler: leadData.groupSize === 1,\n  largeGroup: leadData.groupSize >= 6,\n  \n  // Detect urgency\n  urgentBooking: /\\b(urgent|soon|asap|next week|next month)\\b/i.test(transcript),\n  flexible: /\\b(flexible|any time|whenever)\\b/i.test(transcript)\n};\n\n// Calculate enhanced lead score\nlet finalScore = leadData.leadScore;\n\n// Boost for complete information\nif (extractedData.hasEmail) finalScore += 25;\nif (extractedData.hasSpecificDates) finalScore += 20;\nif (extractedData.hasGroupSize) finalScore += 15;\n\n// Boost for urgency\nif (extractedData.urgentBooking) finalScore += 20;\n\n// Boost for special occasions (high-value)\nif (extractedData.honeymoon) finalScore += 15;\n\n// Cap at 100\nfinalScore = Math.min(finalScore, 100);\n\n// Determine priority\nlet priority = 'low';\nlet routingDestination = 'nurture_campaign';\nlet expectedResponseTime = '48 hours';\n\nif (finalScore >= 80) {\n  priority = 'high';\n  routingDestination = 'senior_booking_agent';\n  expectedResponseTime = '1 hour';\n} else if (finalScore >= 50) {\n  priority = 'medium';\n  routingDestination = 'travel_planning_specialist';\n  expectedResponseTime = '24 hours';\n}\n\n// Determine which agent (simulation)\nconst agents = {\n  senior_booking_agent: [\n    { id: 'SBA-001', name: 'Sarah Mitchell', email: 'sarah@sambora.com', available: true },\n    { id: 'SBA-002', name: 'James Uwimana', email: 'james@sambora.com', available: true }\n  ],\n  travel_planning_specialist: [\n    { id: 'TPS-001', name: 'Michael Ngabo', email: 'michael@sambora.com', available: true },\n    { id: 'TPS-002', name: 'Grace Mukankusi', email: 'grace@sambora.com', available: true }\n  ]\n};\n\nconst agentPool = agents[routingDestination] || [];\nconst selectedAgent = agentPool.find(a => a.available) || {\n  id: 'QUEUE',\n  name: 'Next Available',\n  email: 'reservations@sambora.com'\n};\n\n// Prepare output\nreturn {\n  json: {\n    // Lead Information\n    leadName: leadData.name,\n    email: leadData.email,\n    travelDates: leadData.travelDates,\n    groupSize: leadData.groupSize,\n    needPermits: leadData.needPermits,\n    \n    // Scoring\n    leadScore: finalScore,\n    priority: priority,\n    \n    // Intent Analysis\n    intents: intents,\n    extractedData: extractedData,\n    \n    // Routing\n    routingDestination: routingDestination,\n    assignedAgent: selectedAgent,\n    expectedResponseTime: expectedResponseTime,\n    \n    // Metadata\n    source: 'voiceflow',\n    sessionId: leadData.sessionId,\n    timestamp: leadData.timestamp,\n    conversationTranscript: leadData.conversationTranscript,\n    \n    // For Google Sheets\n    receivedAt: new Date().toISOString(),\n    status: 'new',\n    \n    // Quick summary for notifications\n    summary: `${leadData.name} ${extractedData.hasEmail ? '(' + leadData.email + ')' : '(no email)'} - ${leadData.groupSize} people - ${leadData.travelDates}`\n  }\n};"
+      },
+      "id": "process-voiceflow-data",
+      "name": "Process Voiceflow Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{$parameter[\"documentId\"]}}",
+          "mode": "list",
+          "cachedResultName": "Sambora Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.receivedAt }}",
+            "Lead Name": "={{ $json.leadName }}",
+            "Email": "={{ $json.email }}",
+            "Travel Dates": "={{ $json.travelDates }}",
+            "Group Size": "={{ $json.groupSize }}",
+            "Need Permits": "={{ $json.needPermits }}",
+            "Lead Score": "={{ $json.leadScore }}",
+            "Priority": "={{ $json.priority }}",
+            "Assigned To": "={{ $json.assignedAgent.name }}",
+            "Status": "={{ $json.status }}",
+            "Source": "={{ $json.source }}",
+            "Session ID": "={{ $json.sessionId }}",
+            "Response Time": "={{ $json.expectedResponseTime }}",
+            "Special Notes": "={{ $json.extractedData.honeymoon ? 'Honeymoon' : $json.extractedData.familyTrip ? 'Family Trip' : '' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "google-sheets-add",
+      "name": "Add to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [650, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "bot@sambora.com",
+        "toEmail": "={{ $json.assignedAgent.email }}",
+        "subject": "=🔔 New {{ $json.priority.toUpperCase() }} Priority Lead - {{ $json.leadName }}",
+        "emailFormat": "html",
+        "text": "=<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }\n    .priority-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin: 10px 0; }\n    .high { background: #dc3545; color: white; }\n    .medium { background: #ffc107; color: #333; }\n    .low { background: #6c757d; color: white; }\n    .info-box { background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4a7c2c; border-radius: 4px; }\n    .label { font-weight: bold; color: #2d5016; }\n    .cta-button { display: inline-block; padding: 12px 30px; background: #4a7c2c; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🦍 New Lead from Voiceflow</h1>\n      <p>Sambora Kinigi Inquiry System</p>\n    </div>\n    \n    <div class=\"content\">\n      <span class=\"priority-badge {{ $json.priority }}\">{{ $json.priority.toUpperCase() }} PRIORITY</span>\n      \n      <div class=\"info-box\">\n        <h3>Lead Information</h3>\n        <p><span class=\"label\">Name:</span> {{ $json.leadName }}</p>\n        <p><span class=\"label\">Email:</span> {{ $json.email || 'Not provided' }}</p>\n        <p><span class=\"label\">Lead Score:</span> {{ $json.leadScore }}/100</p>\n        <p><span class=\"label\">Session ID:</span> {{ $json.sessionId }}</p>\n      </div>\n      \n      <div class=\"info-box\">\n        <h3>📋 Travel Details</h3>\n        <p><span class=\"label\">Travel Dates:</span> {{ $json.travelDates }}</p>\n        <p><span class=\"label\">Group Size:</span> {{ $json.groupSize }} people</p>\n        <p><span class=\"label\">Needs Permits:</span> {{ $json.needPermits }}</p>\n        {{ $json.extractedData.honeymoon ? '<p><span class=\"label\">⭐ Special:</span> Honeymoon/Anniversary Trip</p>' : '' }}\n      </div>\n      \n      <div class=\"info-box\">\n        <h3>🎯 Detected Intents</h3>\n        <p>\n          {{ $json.intents.booking ? '✅ Booking Intent<br>' : '' }}\n          {{ $json.intents.pricing ? '✅ Pricing Interest<br>' : '' }}\n          {{ $json.intents.permits ? '✅ Permit Questions<br>' : '' }}\n          {{ $json.intents.accommodation ? '✅ Accommodation Interest<br>' : '' }}\n          {{ $json.intents.packing ? '✅ Trip Preparation<br>' : '' }}\n        </p>\n      </div>\n      \n      <div class=\"info-box\">\n        <h3>⚡ Action Required</h3>\n        <p><strong>Expected Response Time:</strong> {{ $json.expectedResponseTime }}</p>\n        <p><strong>Recommended Next Steps:</strong></p>\n        <ul>\n          {{ $json.email ? '<li>Send personalized email within ' + $json.expectedResponseTime + '</li>' : '<li>Wait for customer to provide contact info</li>' }}\n          {{ $json.travelDates !== 'Not specified' ? '<li>Check availability for ' + $json.travelDates + '</li>' : '<li>Propose available date options</li>' }}\n          {{ $json.needPermits === 'Yes, please' ? '<li>Initiate permit booking process</li>' : '' }}\n          <li>Prepare {{ $json.groupSize }}-person package quote</li>\n        </ul>\n      </div>\n      \n      <center>\n        <a href=\"https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID\" class=\"cta-button\">View in Dashboard</a>\n      </center>\n      \n      <p style=\"margin-top: 20px; color: #666; font-size: 12px; text-align: center;\">\n        Lead received at {{ $json.receivedAt }}<br>\n        Source: Voiceflow Chatbot | Session: {{ $json.sessionId }}\n      </p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-agent",
+      "name": "Email Agent",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.leadScore }}",
+              "operation": "largerEqual",
+              "value2": 50
+            }
+          ]
+        }
+      },
+      "id": "if-qualified",
+      "name": "Is Qualified Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "webhook": "={{ $parameter[\"webhook\"] }}",
+        "text": "=🔥 *HIGH PRIORITY LEAD* 🔥\\n\\n*{{ $json.leadName }}*\\nScore: {{ $json.leadScore }}/100\\nPriority: {{ $json.priority }}\\n\\n📅 Dates: {{ $json.travelDates }}\\n👥 Group: {{ $json.groupSize }} people\\n📧 {{ $json.email || 'No email yet' }}\\n\\n⏰ Response required: {{ $json.expectedResponseTime }}\\n\\nAssigned to: {{ $json.assignedAgent.name }}",
+        "options": {}
+      },
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1050, 200],
+      "credentials": {
+        "slackWebhookApi": {
+          "id": "2",
+          "name": "Slack Webhook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Lead received and processed\",\n  \"leadScore\": {{ $json.leadScore }},\n  \"priority\": \"{{ $json.priority }}\",\n  \"assignedTo\": \"{{ $json.assignedAgent.name }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"timestamp\": \"{{ $json.receivedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Send Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Voiceflow Lead": {
+      "main": [
+        [
+          {
+            "node": "Process Voiceflow Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Voiceflow Data": {
+      "main": [
+        [
+          {
+            "node": "Add to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Qualified Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Qualified Lead?": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

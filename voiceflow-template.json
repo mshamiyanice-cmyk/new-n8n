@@ -1,0 +1,727 @@
+{
+  "version": "2021-01-01",
+  "project": {
+    "name": "Sambora Kinigi - Gorilla Trekking Inquiry Bot",
+    "description": "AI-powered chatbot for luxury gorilla trekking lodge with intelligent lead qualification",
+    "platform": "voiceflow"
+  },
+  "intents": [
+    {
+      "name": "greeting",
+      "utterances": [
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "greetings"
+      ]
+    },
+    {
+      "name": "gorilla_trekking_info",
+      "utterances": [
+        "tell me about gorilla trekking",
+        "how does gorilla trekking work",
+        "what is gorilla trekking",
+        "gorilla safari",
+        "see gorillas",
+        "mountain gorillas"
+      ]
+    },
+    {
+      "name": "pricing",
+      "utterances": [
+        "how much does it cost",
+        "what are your prices",
+        "pricing",
+        "rates",
+        "cost",
+        "expensive",
+        "price per person"
+      ]
+    },
+    {
+      "name": "permits",
+      "utterances": [
+        "gorilla permit",
+        "do I need a permit",
+        "how to get permit",
+        "permit cost",
+        "permit booking"
+      ]
+    },
+    {
+      "name": "booking_intent",
+      "utterances": [
+        "I want to book",
+        "make a reservation",
+        "check availability",
+        "book now",
+        "reserve",
+        "I want to visit"
+      ]
+    },
+    {
+      "name": "accommodation",
+      "utterances": [
+        "tell me about your rooms",
+        "accommodation",
+        "where do we stay",
+        "hotel",
+        "lodge",
+        "what's included"
+      ]
+    },
+    {
+      "name": "what_to_pack",
+      "utterances": [
+        "what should I pack",
+        "what to bring",
+        "what to wear",
+        "packing list",
+        "what do I need"
+      ]
+    },
+    {
+      "name": "activities",
+      "utterances": [
+        "what else can we do",
+        "other activities",
+        "what to do",
+        "things to see"
+      ]
+    },
+    {
+      "name": "best_time",
+      "utterances": [
+        "when is the best time to visit",
+        "best season",
+        "when should I go",
+        "weather"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "date",
+      "type": "system.date",
+      "examples": ["March 2025", "next month", "December 15"]
+    },
+    {
+      "name": "number",
+      "type": "system.number",
+      "examples": ["2", "4 people", "six guests"]
+    },
+    {
+      "name": "email",
+      "type": "regex",
+      "pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    }
+  ],
+  "conversation_flows": {
+    "welcome": {
+      "trigger": "session_start",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Welcome to Sambora Kinigi Lodge! 🦍 I'm here to help you plan your unforgettable gorilla trekking adventure in Rwanda.",
+          "delay": 1000
+        },
+        {
+          "type": "text",
+          "content": "Are you interested in learning about gorilla trekking, our luxury accommodations, or would you like to make a booking?",
+          "delay": 500
+        },
+        {
+          "type": "buttons",
+          "options": [
+            {
+              "label": "🦍 Gorilla Trekking",
+              "value": "gorilla_info",
+              "action": "goto_gorilla_info"
+            },
+            {
+              "label": "🏨 Accommodations",
+              "value": "accommodation",
+              "action": "goto_accommodation"
+            },
+            {
+              "label": "📅 Book Now",
+              "value": "booking",
+              "action": "goto_booking"
+            },
+            {
+              "label": "💰 Pricing",
+              "value": "pricing",
+              "action": "goto_pricing"
+            }
+          ]
+        }
+      ]
+    },
+    "gorilla_info": {
+      "id": "goto_gorilla_info",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Gorilla trekking in Rwanda's Volcanoes National Park is truly a once-in-a-lifetime experience! You'll spend up to an hour with endangered mountain gorillas in their natural habitat."
+        },
+        {
+          "type": "text",
+          "content": "Here's what you should know:\n\n• Permits cost $1,500 per person\n• Minimum age is 15 years\n• We recommend booking 6 months in advance\n• Sambora Kinigi is perfectly located near the park entrance",
+          "delay": 1000
+        },
+        {
+          "type": "buttons",
+          "content": "Would you like to know more about:",
+          "options": [
+            {
+              "label": "Permit Booking",
+              "value": "permits",
+              "action": "goto_permits"
+            },
+            {
+              "label": "What to Expect",
+              "value": "trek_experience",
+              "action": "goto_trek_experience"
+            },
+            {
+              "label": "Best Time to Visit",
+              "value": "best_time",
+              "action": "goto_best_time"
+            },
+            {
+              "label": "What to Pack",
+              "value": "packing",
+              "action": "goto_packing"
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "set": {
+          "lead_score": "+15",
+          "intent_gorilla_trekking": "true"
+        }
+      }
+    },
+    "accommodation": {
+      "id": "goto_accommodation",
+      "steps": [
+        {
+          "type": "text",
+          "content": "We offer luxury boutique accommodations designed for your ultimate comfort after an exhilarating day of trekking!"
+        },
+        {
+          "type": "text",
+          "content": "✨ Our all-inclusive rooms include:\n\n• Private balconies with stunning garden views\n• Complimentary 45-minute massage\n• All meals featuring fresh, local cuisine\n• House wines and stocked minibar\n• Evening fires and warm bottles for your bed\n• Professional boot cleaning after muddy treks",
+          "delay": 1000
+        },
+        {
+          "type": "text",
+          "content": "The rate is approximately $700 per person per night, covering everything you need for a worry-free stay.",
+          "delay": 800
+        },
+        {
+          "type": "buttons",
+          "content": "Would you like to:",
+          "options": [
+            {
+              "label": "Check Availability",
+              "value": "check_availability",
+              "action": "goto_booking"
+            },
+            {
+              "label": "Learn About Dining",
+              "value": "dining",
+              "action": "goto_dining"
+            },
+            {
+              "label": "See All Services",
+              "value": "services",
+              "action": "goto_services"
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "set": {
+          "lead_score": "+18",
+          "intent_accommodation": "true"
+        }
+      }
+    },
+    "pricing": {
+      "id": "goto_pricing",
+      "steps": [
+        {
+          "type": "text",
+          "content": "I'm happy to break down the costs for you:"
+        },
+        {
+          "type": "card",
+          "title": "💎 Sambora Kinigi All-Inclusive Stay",
+          "description": "$700 per person/night\n\nIncludes: all meals, drinks, wines, minibar, 45-min massage, WiFi, cultural performances"
+        },
+        {
+          "type": "card",
+          "title": "🦍 Gorilla Permit",
+          "description": "$1,500 per person (book separately, 6 months ahead)\n\n30% discount Nov-May with 2+ nights at other parks"
+        },
+        {
+          "type": "text",
+          "content": "Example 3-Day Package:\n• 2 nights accommodation: $1,400/person\n• 1 gorilla trek permit: $1,500/person\n• Total: ~$2,900/person (all-inclusive luxury!)",
+          "delay": 1000
+        },
+        {
+          "type": "text",
+          "content": "Many guests say this once-in-a-lifetime experience is priceless. The personalized service, gourmet meals, and unforgettable gorilla encounter make it worth every penny."
+        },
+        {
+          "type": "buttons",
+          "content": "What would you like to do next?",
+          "options": [
+            {
+              "label": "Get Custom Quote",
+              "value": "custom_quote",
+              "action": "goto_booking"
+            },
+            {
+              "label": "See Guest Reviews",
+              "value": "reviews",
+              "action": "goto_reviews"
+            },
+            {
+              "label": "Learn About Discounts",
+              "value": "discounts",
+              "action": "goto_discounts"
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "set": {
+          "lead_score": "+20",
+          "intent_pricing": "true"
+        }
+      }
+    },
+    "booking": {
+      "id": "goto_booking",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Wonderful! I'd love to help you secure your gorilla trekking adventure. Let me gather a few details:"
+        },
+        {
+          "type": "capture",
+          "variable": "travel_dates",
+          "content": "When are you planning to visit? (You can say a specific date like 'March 15, 2025' or just a month like 'June 2025')",
+          "validation": {
+            "type": "date_or_text",
+            "error_message": "Please provide your preferred travel dates or month"
+          }
+        },
+        {
+          "type": "set_variable",
+          "variable": "lead_score",
+          "operation": "add",
+          "value": 25
+        },
+        {
+          "type": "capture",
+          "variable": "group_size",
+          "content": "How many guests will be traveling?",
+          "validation": {
+            "type": "number",
+            "min": 1,
+            "max": 20,
+            "error_message": "Please provide a number between 1 and 20"
+          }
+        },
+        {
+          "type": "set_variable",
+          "variable": "lead_score",
+          "operation": "add",
+          "value": 15
+        },
+        {
+          "type": "capture",
+          "variable": "need_permits",
+          "content": "Do you need help arranging gorilla permits?",
+          "options": ["Yes, please", "No, I'll arrange them", "Not sure yet"]
+        },
+        {
+          "type": "capture",
+          "variable": "user_email",
+          "content": "Perfect! May I have your email address so our reservations specialist can send you a detailed quote and check availability?",
+          "validation": {
+            "type": "email",
+            "error_message": "Please provide a valid email address"
+          }
+        },
+        {
+          "type": "set_variable",
+          "variable": "lead_score",
+          "operation": "add",
+          "value": 30
+        },
+        {
+          "type": "capture",
+          "variable": "user_name",
+          "content": "And what's your name?",
+          "validation": {
+            "type": "text",
+            "error_message": "Please provide your name"
+          }
+        },
+        {
+          "type": "text",
+          "content": "Thank you, {user_name}! 🎉"
+        },
+        {
+          "type": "api_call",
+          "name": "send_to_n8n",
+          "method": "POST",
+          "url": "{{n8n_webhook_url}}/webhook/voiceflow-lead",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "lead_name": "{user_name}",
+            "email": "{user_email}",
+            "travel_dates": "{travel_dates}",
+            "group_size": "{group_size}",
+            "need_permits": "{need_permits}",
+            "lead_score": "{lead_score}",
+            "session_id": "{session_id}",
+            "conversation_transcript": "{conversation_history}",
+            "source": "voiceflow",
+            "timestamp": "{current_timestamp}"
+          }
+        },
+        {
+          "type": "text",
+          "content": "Perfect! Here's what happens next:\n\n✅ Our reservations specialist will contact you within 24 hours\n✅ They'll confirm availability for {travel_dates}\n✅ You'll receive a detailed quote for {group_size} guests\n✅ We'll assist with gorilla permit booking\n✅ Answer any additional questions you have"
+        },
+        {
+          "type": "text",
+          "content": "In the meantime, is there anything else you'd like to know about Sambora Kinigi or gorilla trekking?"
+        }
+      ],
+      "variables": {
+        "set": {
+          "intent_booking": "true",
+          "lead_qualified": "true"
+        }
+      }
+    },
+    "permits": {
+      "id": "goto_permits",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Great question! Gorilla permits are essential for your trek. Here's everything you need to know:"
+        },
+        {
+          "type": "card",
+          "title": "💰 Pricing",
+          "description": "• $1,500 for international visitors\n• $500 for foreign residents of Rwanda\n• 💡 30% off if visiting Nov-May AND staying 2+ nights at other Rwanda parks"
+        },
+        {
+          "type": "card",
+          "title": "📅 Booking",
+          "description": "• Book at least 6 months in advance\n• Only 96 permits available per day\n• We can help arrange permits for you"
+        },
+        {
+          "type": "card",
+          "title": "✅ What's Included",
+          "description": "• Park entrance\n• Guided trek\n• 1 hour with gorillas"
+        },
+        {
+          "type": "card",
+          "title": "❌ Not Included",
+          "description": "• Porter fees (recommended - ~$15)\n• Guide tips\n• Accommodation (covered in our all-inclusive rate!)"
+        },
+        {
+          "type": "buttons",
+          "content": "Would you like me to connect you with our team to secure permits for your dates?",
+          "options": [
+            {
+              "label": "Yes, Help Me Book",
+              "value": "yes_book",
+              "action": "goto_booking"
+            },
+            {
+              "label": "More Questions First",
+              "value": "more_questions",
+              "action": "goto_help_menu"
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "set": {
+          "lead_score": "+20",
+          "intent_permits": "true"
+        }
+      }
+    },
+    "packing": {
+      "id": "goto_packing",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Excellent question! Proper preparation ensures a comfortable and memorable trek."
+        },
+        {
+          "type": "card",
+          "title": "👕 Clothing",
+          "description": "✅ Hiking boots (we'll clean them!)\n✅ Layered, moisture-wicking clothes\n✅ Rain jacket\n✅ Hand gloves\n✅ Long pants and long sleeves"
+        },
+        {
+          "type": "card",
+          "title": "📸 Equipment",
+          "description": "✅ Good camera (no flash allowed)\n✅ Binoculars\n✅ Insect repellent\n✅ Sunscreen"
+        },
+        {
+          "type": "text",
+          "content": "🌤️ Weather tip: Mornings are cool, hiking can be hot. Expect mist and rain. Layered clothing is your best friend!"
+        },
+        {
+          "type": "text",
+          "content": "⏰ Trek Day Timeline:\n• 7:00 AM: Arrive at RDB offices in Kinigi for briefing\n• We'll arrange early breakfast and transportation\n• Porters available (~$15) to carry your daypack"
+        },
+        {
+          "type": "buttons",
+          "content": "Do you have confirmed dates for your trek?",
+          "options": [
+            {
+              "label": "Yes, Let's Book",
+              "value": "book_now",
+              "action": "goto_booking"
+            },
+            {
+              "label": "Not Yet",
+              "value": "not_yet",
+              "action": "goto_help_menu"
+            }
+          ]
+        }
+      ]
+    },
+    "best_time": {
+      "id": "goto_best_time",
+      "steps": [
+        {
+          "type": "text",
+          "content": "Rwanda is a year-round gorilla trekking destination, but there are some considerations:"
+        },
+        {
+          "type": "card",
+          "title": "☀️ Dry Seasons (Peak)",
+          "description": "June - September & December - February\n\n✅ Easier hiking conditions\n✅ Less mud\n❌ Higher demand for permits"
+        },
+        {
+          "type": "card",
+          "title": "🌧️ Wet Seasons (Green)",
+          "description": "March - May & October - November\n\n✅ 30% permit discount available\n✅ Lush scenery\n✅ Fewer tourists\n❌ Muddy trails (but we clean your boots!)"
+        },
+        {
+          "type": "text",
+          "content": "💡 Pro Tip: We recommend November-May for the discount AND beautiful landscapes. Our all-inclusive package means you'll be comfortable regardless of weather!"
+        },
+        {
+          "type": "text",
+          "content": "⚠️ Important: Regardless of when you visit, book permits 6 months ahead!"
+        },
+        {
+          "type": "buttons",
+          "content": "Do you have specific dates in mind?",
+          "options": [
+            {
+              "label": "Yes, Check Availability",
+              "value": "check_dates",
+              "action": "goto_booking"
+            },
+            {
+              "label": "Still Deciding",
+              "value": "deciding",
+              "action": "goto_help_menu"
+            }
+          ]
+        }
+      ]
+    },
+    "help_menu": {
+      "id": "goto_help_menu",
+      "steps": [
+        {
+          "type": "text",
+          "content": "How else can I help you today?"
+        },
+        {
+          "type": "buttons",
+          "options": [
+            {
+              "label": "🦍 Gorilla Trekking Info",
+              "value": "gorilla_info",
+              "action": "goto_gorilla_info"
+            },
+            {
+              "label": "🏨 Accommodations",
+              "value": "accommodation",
+              "action": "goto_accommodation"
+            },
+            {
+              "label": "💰 Pricing",
+              "value": "pricing",
+              "action": "goto_pricing"
+            },
+            {
+              "label": "📅 Book Now",
+              "value": "booking",
+              "action": "goto_booking"
+            },
+            {
+              "label": "📞 Contact Details",
+              "value": "contact",
+              "action": "goto_contact"
+            }
+          ]
+        }
+      ]
+    },
+    "contact": {
+      "id": "goto_contact",
+      "steps": [
+        {
+          "type": "text",
+          "content": "You can reach Sambora Kinigi Lodge directly:"
+        },
+        {
+          "type": "card",
+          "title": "📞 Contact Information",
+          "description": "Phone: +250 794 416 409\nWhatsApp: +44 7960 040 859\nEmail: stay@samborakinigi.com\nWebsite: samborakinigi.com"
+        },
+        {
+          "type": "text",
+          "content": "Would you like our team to contact you instead? If so, I can collect your information and have them reach out within 24 hours."
+        },
+        {
+          "type": "buttons",
+          "options": [
+            {
+              "label": "Yes, Have Them Contact Me",
+              "value": "contact_me",
+              "action": "goto_booking"
+            },
+            {
+              "label": "No Thanks",
+              "value": "no_thanks",
+              "action": "goto_help_menu"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "variables": {
+    "lead_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Cumulative lead score based on interactions"
+    },
+    "user_name": {
+      "type": "string",
+      "default": "",
+      "description": "User's name"
+    },
+    "user_email": {
+      "type": "string",
+      "default": "",
+      "description": "User's email address"
+    },
+    "travel_dates": {
+      "type": "string",
+      "default": "",
+      "description": "Preferred travel dates"
+    },
+    "group_size": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of travelers"
+    },
+    "need_permits": {
+      "type": "string",
+      "default": "",
+      "description": "Whether user needs help with permits"
+    },
+    "intent_gorilla_trekking": {
+      "type": "boolean",
+      "default": false
+    },
+    "intent_pricing": {
+      "type": "boolean",
+      "default": false
+    },
+    "intent_accommodation": {
+      "type": "boolean",
+      "default": false
+    },
+    "intent_booking": {
+      "type": "boolean",
+      "default": false
+    },
+    "intent_permits": {
+      "type": "boolean",
+      "default": false
+    },
+    "lead_qualified": {
+      "type": "boolean",
+      "default": false
+    },
+    "session_id": {
+      "type": "string",
+      "system": true
+    },
+    "conversation_history": {
+      "type": "array",
+      "system": true
+    },
+    "current_timestamp": {
+      "type": "string",
+      "system": true
+    }
+  },
+  "settings": {
+    "fallback_messages": [
+      "I want to make sure I give you the right information. Could you rephrase your question?",
+      "I'm not quite sure about that. Let me connect you with our team who can help! May I have your email?",
+      "That's a great question! Our specialists can provide detailed information. Would you like me to have them contact you?"
+    ],
+    "no_match_threshold": 2,
+    "session_timeout": 1800,
+    "handoff_triggers": [
+      "talk to human",
+      "speak to agent",
+      "customer service",
+      "representative"
+    ]
+  },
+  "integrations": {
+    "n8n_webhook": {
+      "description": "Send qualified leads to n8n for processing",
+      "url": "{{REPLACE_WITH_YOUR_N8N_WEBHOOK_URL}}/webhook/voiceflow-lead",
+      "triggers": [
+        "lead_qualified",
+        "email_captured",
+        "booking_intent"
+      ]
+    }
+  },
+  "knowledge_base": {
+    "source_file": "knowledge-base.md",
+    "note": "Import all content from knowledge-base.md into Voiceflow Knowledge Base for AI responses"
+  }
+}
