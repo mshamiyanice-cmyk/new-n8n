@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sambora Kinigi Lodge - Gorilla Trekking Inquiry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 50%, #2d5016 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .demo-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 100px);
+            max-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(135deg, #4a7c2c 0%, #2d5016 100%);
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .input-container {
+            padding: 20px 25px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        #user-input:focus {
+            border-color: #4a7c2c;
+            box-shadow: 0 0 0 3px rgba(74, 124, 44, 0.1);
+        }
+
+        #send-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4a7c2c 0%, #2d5016 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        #send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 124, 44, 0.3);
+        }
+
+        #send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            background: #4a7c2c;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .info-panel {
+            background: #fff3cd;
+            padding: 15px;
+            margin: 20px 25px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .info-panel strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #856404;
+        }
+
+        .lead-score-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 13px;
+            z-index: 100;
+        }
+
+        .score-bar {
+            width: 200px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a7c2c 0%, #2d5016 100%);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 15px 25px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .quick-action-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #4a7c2c;
+            color: #4a7c2c;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .quick-action-btn:hover {
+            background: #4a7c2c;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: calc(100vh - 70px);
+                margin-top: 40px;
+                border-radius: 12px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .lead-score-indicator {
+                display: none;
+            }
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .welcome-message h2 {
+            color: #2d5016;
+            margin-bottom: 15px;
+        }
+
+        .welcome-message p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        🎬 DEMO MODE - Intelligent Inquiry Management System for Sambora Kinigi Lodge
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🦍</span>
+                Sambora Kinigi Lodge
+            </h1>
+            <p>Your Gateway to Unforgettable Gorilla Trekking Adventures</p>
+        </div>
+
+        <div class="info-panel">
+            <strong>💡 Demo Information:</strong>
+            This chatbot demonstrates AI-powered lead qualification and routing. Ask about gorilla trekking, accommodations, pricing, or express booking interest to see the system in action!
+        </div>
+
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="sendQuickMessage('Tell me about gorilla trekking')">🦍 Gorilla Trekking Info</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('What are your room rates?')">💰 Pricing</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('I want to book a trip')">📅 Book Now</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('What should I pack?')">🎒 What to Pack</button>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <div class="welcome-message">
+                <h2>Welcome to Sambora Kinigi Lodge! 🌿</h2>
+                <p>I'm your AI assistant, here to help you plan your once-in-a-lifetime gorilla trekking adventure in Rwanda.</p>
+                <p><strong>Try asking me about:</strong></p>
+                <p>🦍 Gorilla trekking experiences and permits<br>
+                   🏨 Our luxury accommodations<br>
+                   💵 Pricing and packages<br>
+                   📅 Booking your stay<br>
+                   🌍 Activities and attractions</p>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    id="user-input"
+                    placeholder="Ask me anything about gorilla trekking..."
+                    onkeypress="handleKeyPress(event)"
+                    autocomplete="off"
+                >
+            </div>
+            <button id="send-button" onclick="sendMessage()">
+                Send 📤
+            </button>
+        </div>
+    </div>
+
+    <div class="lead-score-indicator">
+        <strong>Lead Score</strong>
+        <div id="score-value">0/100</div>
+        <div class="score-bar">
+            <div class="score-fill" id="score-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        let sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        let currentLeadScore = 0;
+
+        // Initialize with welcome message from bot
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                addBotMessage("Welcome to Sambora Kinigi Lodge! 🦍 I'm here to help you plan your unforgettable gorilla trekking adventure in Rwanda. Are you interested in learning about gorilla trekking, our luxury accommodations, or would you like to make a booking?");
+            }, 500);
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('user-input').value = message;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addUserMessage(message);
+            input.value = '';
+
+            // Disable input while processing
+            input.disabled = true;
+            document.getElementById('send-button').disabled = true;
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: message,
+                timestamp: new Date().toISOString()
+            });
+
+            try {
+                // In demo mode, use simulated responses
+                // In production, this would call the n8n webhook
+                const response = await simulateChatbotResponse(message);
+
+                // Hide typing indicator
+                hideTypingIndicator();
+
+                // Add bot response
+                addBotMessage(response.response);
+
+                // Update lead score
+                updateLeadScore(response.leadScore || 0);
+
+                // Add to conversation history
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: response.response,
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (error) {
+                hideTypingIndicator();
+                addBotMessage("I apologize, but I'm having trouble connecting right now. Please try again or contact us directly at stay@samborakinigi.com or +250 794 416 409.");
+            }
+
+            // Re-enable input
+            input.disabled = false;
+            document.getElementById('send-button').disabled = false;
+            input.focus();
+        }
+
+        function addUserMessage(message) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">👤</div>
+                <div class="message-content">${escapeHtml(message)}</div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addBotMessage(message) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🦍</div>
+                <div class="message-content">${escapeHtml(message)}</div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const chatContainer = document.getElementById('chat-container');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator-wrapper';
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = `
+                <div class="message-avatar">🦍</div>
+                <div class="typing-indicator active">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            chatContainer.appendChild(typingDiv);
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const typingDiv = document.getElementById('typing-indicator-wrapper');
+            if (typingDiv) {
+                typingDiv.remove();
+            }
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateLeadScore(score) {
+            currentLeadScore = Math.min(score, 100);
+            document.getElementById('score-value').textContent = currentLeadScore + '/100';
+            document.getElementById('score-fill').style.width = currentLeadScore + '%';
+
+            // Change color based on score
+            const scoreFill = document.getElementById('score-fill');
+            if (currentLeadScore >= 80) {
+                scoreFill.style.background = 'linear-gradient(90deg, #28a745 0%, #20c997 100%)';
+            } else if (currentLeadScore >= 50) {
+                scoreFill.style.background = 'linear-gradient(90deg, #ffc107 0%, #fd7e14 100%)';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // Simulated chatbot responses for demo
+        async function simulateChatbotResponse(message) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+
+            const lowerMessage = message.toLowerCase();
+            let response = '';
+            let scoreIncrease = 0;
+
+            // Gorilla trekking questions
+            if (lowerMessage.includes('gorilla') || lowerMessage.includes('trek')) {
+                response = "Gorilla trekking in Rwanda's Volcanoes National Park is truly a once-in-a-lifetime experience! You'll spend up to an hour with endangered mountain gorillas in their natural habitat.\n\nHere's what you should know:\n• Permits cost $1,500 per person\n• Minimum age is 15 years\n• We recommend booking 6 months in advance\n• Sambora Kinigi is perfectly located near the park entrance\n\nWould you like to know more about the permit booking process, what to expect on a trek, or when's the best time to visit?";
+                scoreIncrease = 15;
+            }
+            // Pricing questions
+            else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('rate') || lowerMessage.includes('expensive')) {
+                response = "I'm happy to break down the costs for you:\n\n💎 Sambora Kinigi All-Inclusive Stay:\n• $700 per person/night\n• Includes: all meals, drinks, wines, minibar, 45-min massage, WiFi, cultural performances\n\n🦍 Gorilla Permit:\n• $1,500 per person (book separately, 6 months ahead)\n• 30% discount Nov-May with 2+ nights at other parks\n\n📋 Additional Costs:\n• Porter: ~$15 (highly recommended)\n• Guide tips: discretionary\n\nExample 3-Day Package:\n• 2 nights accommodation: $1,400/person\n• 1 gorilla trek permit: $1,500/person\n• Total: ~$2,900/person\n\nMany guests say this once-in-a-lifetime experience is priceless! Would you like a custom quote for your dates?";
+                scoreIncrease = 20;
+            }
+            // Booking intent
+            else if (lowerMessage.includes('book') || lowerMessage.includes('reserve') || lowerMessage.includes('availability')) {
+                response = "Wonderful! I'd love to help you secure your gorilla trekking adventure. Let me gather a few details:\n\n1. When are you planning to visit? (Specific dates or month)\n2. How many guests will be traveling?\n3. Do you need gorilla permits arranged?\n\nOur reservations specialist will then check availability and provide a detailed quote. May I have your email address to send you the information and follow up?";
+                scoreIncrease = 30;
+            }
+            // Accommodations
+            else if (lowerMessage.includes('room') || lowerMessage.includes('accommodation') || lowerMessage.includes('stay') || lowerMessage.includes('hotel')) {
+                response = "We offer luxury boutique accommodations designed for your ultimate comfort after an exhilarating day of trekking!\n\n✨ Our all-inclusive rooms include:\n• Private balconies with stunning garden views\n• Complimentary 45-minute massage\n• All meals featuring fresh, local cuisine\n• House wines and stocked minibar\n• Evening fires and warm bottles for your bed\n• Professional boot cleaning after muddy treks\n\nThe rate is $700 per person per night, covering everything you need for a worry-free stay.\n\nWould you like to check availability for specific dates?";
+                scoreIncrease = 18;
+            }
+            // What to pack
+            else if (lowerMessage.includes('pack') || lowerMessage.includes('bring') || lowerMessage.includes('wear')) {
+                response = "Excellent question! Proper preparation ensures a comfortable trek:\n\n👕 Clothing:\n✅ Hiking boots (we'll clean them!)\n✅ Layered, moisture-wicking clothes\n✅ Rain jacket\n✅ Hand gloves\n✅ Long pants and sleeves\n\n📸 Equipment:\n✅ Good camera (no flash)\n✅ Binoculars\n✅ Insect repellent\n✅ Sunscreen\n\n⏰ Trek Day:\n• 7:00 AM briefing at RDB offices\n• We arrange early breakfast & transport\n• Porters available (~$15) to carry your daypack\n\nDo you have confirmed dates for your trek?";
+                scoreIncrease = 12;
+            }
+            // Contact/email provided
+            else if (lowerMessage.includes('@') || lowerMessage.includes('email')) {
+                response = "Thank you for providing your contact information! Our reservations specialist will reach out to you within 24 hours with:\n\n✓ Availability confirmation\n✓ Detailed pricing quote\n✓ Gorilla permit booking assistance\n✓ Personalized itinerary options\n\nIn the meantime, is there anything else you'd like to know about Sambora Kinigi or gorilla trekking in Rwanda?";
+                scoreIncrease = 25;
+            }
+            // Activities
+            else if (lowerMessage.includes('activity') || lowerMessage.includes('activities') || lowerMessage.includes('do')) {
+                response = "Beyond gorilla trekking, we offer incredible experiences:\n\n🌿 Wildlife & Nature:\n• Golden Monkey Tracking\n• Volcano Hikes (stunning views!)\n• Dian Fossey Center visits\n• Bird watching\n\n🏨 At the Lodge:\n• Spa & wellness treatments\n• Cultural performances\n• Cycling tours\n• Walking tours\n\nMost guests do 1-2 gorilla treks and combine them with other activities for a 3-4 day stay. Would you like help planning a multi-day itinerary?";
+                scoreIncrease = 10;
+            }
+            // Default response
+            else {
+                response = "Thank you for your question! I want to make sure I give you the most accurate information.\n\nI can help you with:\n🦍 Gorilla trekking details & permits\n🏨 Luxury accommodation information\n💰 Pricing & packages\n📅 Booking & availability\n🎒 Trek preparation & packing\n🌍 Activities & experiences\n\nWhat would you like to know more about? Or if you're ready to book, I can connect you with our reservations team!";
+                scoreIncrease = 5;
+            }
+
+            return {
+                response: response,
+                leadScore: currentLeadScore + scoreIncrease,
+                sessionId: sessionId,
+                timestamp: new Date().toISOString()
+            };
+        }
+
+        /*
+        // Production version - uncomment to use actual n8n webhook
+        async function callChatbotAPI(message) {
+            const response = await fetch('http://localhost:5678/webhook/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    sessionId: sessionId,
+                    userName: 'Demo User',
+                    conversationHistory: conversationHistory
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            return await response.json();
+        }
+        */
+    </script>
+</body>
+</html>

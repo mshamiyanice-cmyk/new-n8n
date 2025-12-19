@@ -1,0 +1,177 @@
+{
+  "name": "Lead Routing to Agents",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "route-to-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-route-1",
+      "name": "Webhook - Routing Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "route-to-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse lead data\nconst leadData = typeof $input.item.json.leadData === 'string' ? \n  JSON.parse($input.item.json.leadData) : $input.item.json.leadData;\nconst agentType = $input.item.json.agentType;\nconst priority = $input.item.json.priority;\n\n// Define agent pool with availability simulation\nconst agents = {\n  senior_booking_agent: [\n    { id: 'SBA-001', name: 'Sarah Mitchell', email: 'sarah@sambora.com', expertise: ['luxury_bookings', 'group_travel'], available: true, currentLoad: 3 },\n    { id: 'SBA-002', name: 'James Uwimana', email: 'james@sambora.com', expertise: ['luxury_bookings', 'permits'], available: true, currentLoad: 5 },\n    { id: 'SBA-003', name: 'Patricia Kayitesi', email: 'patricia@sambora.com', expertise: ['vip_clients', 'custom_itineraries'], available: false, currentLoad: 8 }\n  ],\n  travel_planning_specialist: [\n    { id: 'TPS-001', name: 'Michael Ngabo', email: 'michael@sambora.com', expertise: ['itinerary_planning', 'multi_destination'], available: true, currentLoad: 4 },\n    { id: 'TPS-002', name: 'Grace Mukankusi', email: 'grace@sambora.com', expertise: ['first_time_visitors', 'budget_planning'], available: true, currentLoad: 2 },\n    { id: 'TPS-003', name: 'David Habimana', email: 'david@sambora.com', expertise: ['adventure_travel', 'photography_tours'], available: true, currentLoad: 6 }\n  ],\n  customer_service: [\n    { id: 'CS-001', name: 'Emma Mukamazimpaka', email: 'emma@sambora.com', expertise: ['general_inquiries', 'support'], available: true, currentLoad: 3 },\n    { id: 'CS-002', name: 'Robert Nkusi', email: 'robert@sambora.com', expertise: ['modifications', 'special_requests'], available: true, currentLoad: 4 }\n  ]\n};\n\n// Select best available agent\nlet selectedAgent = null;\nconst agentPool = agents[agentType] || agents.customer_service;\n\n// Filter available agents and sort by current load\nconst availableAgents = agentPool\n  .filter(agent => agent.available)\n  .sort((a, b) => a.currentLoad - b.currentLoad);\n\nif (availableAgents.length > 0) {\n  // For high priority, select agent with specific expertise if available\n  if (priority === 'high') {\n    const expertAgent = availableAgents.find(a => \n      a.expertise.includes('luxury_bookings') || \n      a.expertise.includes('vip_clients')\n    );\n    selectedAgent = expertAgent || availableAgents[0];\n  } else {\n    // Select agent with lowest current load\n    selectedAgent = availableAgents[0];\n  }\n} else {\n  // No agents available - use round-robin or queue\n  selectedAgent = {\n    id: 'QUEUE-001',\n    name: 'Next Available Agent',\n    email: 'reservations@sambora.com',\n    status: 'queued'\n  };\n}\n\nreturn {\n  json: {\n    leadData,\n    selectedAgent,\n    agentType,\n    priority,\n    routingDetails: {\n      routedAt: new Date().toISOString(),\n      routingMethod: selectedAgent.status === 'queued' ? 'queue' : 'direct_assignment',\n      estimatedResponseTime: priority === 'high' ? '1 hour' : '24 hours'\n    }\n  }\n};"
+      },
+      "id": "code-select-agent-1",
+      "name": "Select Best Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "chatbot@sambora.com",
+        "toEmail": "={{ $json.selectedAgent.email }}",
+        "subject": "=🔔 New {{ $json.priority.toUpperCase() }} Priority Lead - {{ $json.leadData.userName }}",
+        "emailFormat": "html",
+        "text": "=<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }\n    .lead-info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #4a7c2c; }\n    .priority-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }\n    .high { background: #dc3545; color: white; }\n    .medium { background: #ffc107; color: #333; }\n    .low { background: #6c757d; color: white; }\n    .data-point { margin: 8px 0; }\n    .label { font-weight: bold; color: #2d5016; }\n    .cta-button { display: inline-block; padding: 12px 30px; background: #4a7c2c; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0; }\n    .conversation { background: #fff; padding: 15px; margin: 10px 0; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }\n    .message { margin: 10px 0; padding: 8px; border-radius: 4px; }\n    .user-message { background: #e3f2fd; }\n    .bot-message { background: #f1f8e9; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🦍 New Lead Alert - Sambora Kinigi</h1>\n      <p>You've been assigned a new inquiry</p>\n    </div>\n    \n    <div class=\"content\">\n      <div class=\"lead-info\">\n        <h2>Lead Information</h2>\n        <span class=\"priority-badge {{ $json.priority }}\">{{ $json.priority.toUpperCase() }} PRIORITY</span>\n        \n        <div class=\"data-point\">\n          <span class=\"label\">Lead Score:</span> {{ $json.leadData.leadScore }}/100\n        </div>\n        <div class=\"data-point\">\n          <span class=\"label\">Guest Name:</span> {{ $json.leadData.userName }}\n        </div>\n        <div class=\"data-point\">\n          <span class=\"label\">Session ID:</span> {{ $json.leadData.sessionId }}\n        </div>\n        <div class=\"data-point\">\n          <span class=\"label\">Qualified At:</span> {{ $json.leadData.qualifiedAt }}\n        </div>\n      </div>\n      \n      <div class=\"lead-info\">\n        <h3>📋 Extracted Information</h3>\n        {{ $json.leadData.extractedData.dates ? '<div class=\"data-point\"><span class=\"label\">Travel Dates:</span> ' + $json.leadData.extractedData.dates + '</div>' : '' }}\n        {{ $json.leadData.extractedData.groupSize ? '<div class=\"data-point\"><span class=\"label\">Group Size:</span> ' + $json.leadData.extractedData.groupSize + ' people</div>' : '' }}\n        {{ $json.leadData.extractedData.email ? '<div class=\"data-point\"><span class=\"label\">Email:</span> ' + $json.leadData.extractedData.email + '</div>' : '' }}\n        {{ $json.leadData.extractedData.phone ? '<div class=\"data-point\"><span class=\"label\">Phone:</span> ' + $json.leadData.extractedData.phone + '</div>' : '' }}\n        {{ $json.leadData.extractedData.trekInterest ? '<div class=\"data-point\"><span class=\"label\">Trek Interest:</span> Yes ✅</div>' : '' }}\n        {{ $json.leadData.extractedData.specialRequests && $json.leadData.extractedData.specialRequests.length > 0 ? '<div class=\"data-point\"><span class=\"label\">Special Requests:</span> ' + $json.leadData.extractedData.specialRequests.join(', ') + '</div>' : '' }}\n      </div>\n      \n      <div class=\"lead-info\">\n        <h3>🎯 Detected Intents</h3>\n        {{ $json.leadData.intents.booking ? '✅ Ready to book<br>' : '' }}\n        {{ $json.leadData.intents.pricing ? '✅ Interested in pricing<br>' : '' }}\n        {{ $json.leadData.intents.permits ? '✅ Asking about permits<br>' : '' }}\n        {{ $json.leadData.intents.dates ? '✅ Discussing dates<br>' : '' }}\n        {{ $json.leadData.intents.contact ? '✅ Requested contact<br>' : '' }}\n      </div>\n      \n      <div class=\"conversation\">\n        <h3>💬 Conversation Summary</h3>\n        {{ $json.leadData.conversationHistory.slice(-10).map(msg => \n          '<div class=\"message ' + (msg.role === 'user' ? 'user-message' : 'bot-message') + '\">' +\n          '<strong>' + (msg.role === 'user' ? 'Guest' : 'Chatbot') + ':</strong> ' +\n          msg.content +\n          '</div>'\n        ).join('') }}\n      </div>\n      \n      <div class=\"lead-info\">\n        <h3>⚡ Recommended Next Steps</h3>\n        <ul>\n          {{ $json.leadData.extractedData.email ? '<li>Send personalized follow-up email within ' + $json.routingDetails.estimatedResponseTime + '</li>' : '<li>Contact guest to collect email address</li>' }}\n          {{ $json.leadData.extractedData.dates ? '<li>Check availability for requested dates</li>' : '<li>Propose date options</li>' }}\n          {{ $json.leadData.intents.permits ? '<li>Initiate permit booking process</li>' : '' }}\n          {{ $json.leadData.extractedData.groupSize ? '<li>Prepare group booking quote</li>' : '' }}\n          <li>Provide detailed itinerary options</li>\n          <li>Answer any outstanding questions from conversation</li>\n        </ul>\n      </div>\n      \n      <center>\n        <a href=\"#\" class=\"cta-button\">View Full Lead Details</a>\n      </center>\n      \n      <div style=\"margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">\n        <strong>⏰ Expected Response Time:</strong> {{ $json.routingDetails.estimatedResponseTime }}<br>\n        <strong>📊 Data Completeness:</strong> {{ $json.leadData.dataCompleteness.completenessPercentage }}%\n      </div>\n    </div>\n    \n    <div style=\"margin-top: 20px; text-align: center; color: #666; font-size: 12px;\">\n      <p>This lead was automatically qualified and routed by the Sambora AI Inquiry Management System</p>\n      <p>Routed at: {{ $json.routingDetails.routedAt }}</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-agent-1",
+      "name": "Notify Agent via Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $json.selectedAgent.id }}",
+        "text": "=🔔 *New {{ $json.priority.toUpperCase() }} Priority Lead*\\n\\n*Guest:* {{ $json.leadData.userName }}\\n*Lead Score:* {{ $json.leadData.leadScore }}/100\\n\\n*Quick Info:*\\n{{ $json.leadData.extractedData.dates ? '📅 Dates: ' + $json.leadData.extractedData.dates : '' }}\\n{{ $json.leadData.extractedData.groupSize ? '👥 Group: ' + $json.leadData.extractedData.groupSize + ' people' : '' }}\\n{{ $json.leadData.extractedData.email ? '📧 ' + $json.leadData.extractedData.email : '' }}\\n\\n*Action Required:* Respond within {{ $json.routingDetails.estimatedResponseTime }}\\n\\nCheck your email for full details.",
+        "additionalFields": {}
+      },
+      "id": "slack-notify-1",
+      "name": "Notify Agent via Slack/Teams",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "resource": "contact",
+        "contactId": "={{ $json.leadData.sessionId }}",
+        "updateFields": {
+          "customFieldsUi": {
+            "customFieldValues": [
+              {
+                "fieldId": "assigned_agent_id",
+                "value": "={{ $json.selectedAgent.id }}"
+              },
+              {
+                "fieldId": "assigned_agent_name",
+                "value": "={{ $json.selectedAgent.name }}"
+              },
+              {
+                "fieldId": "routed_at",
+                "value": "={{ $json.routingDetails.routedAt }}"
+              },
+              {
+                "fieldId": "expected_response_time",
+                "value": "={{ $json.routingDetails.estimatedResponseTime }}"
+              },
+              {
+                "fieldId": "lead_status",
+                "value": "assigned_to_agent"
+              }
+            ]
+          }
+        }
+      },
+      "id": "update-crm-1",
+      "name": "Update CRM with Assignment",
+      "type": "n8n-nodes-base.n8nTrainingCustomerDatastore",
+      "typeVersion": 1,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"routed\",\n  \"assignedTo\": {\n    \"agentId\": \"{{ $json.selectedAgent.id }}\",\n    \"agentName\": \"{{ $json.selectedAgent.name }}\",\n    \"agentEmail\": \"{{ $json.selectedAgent.email }}\"\n  },\n  \"routingDetails\": {{ JSON.stringify($json.routingDetails) }},\n  \"message\": \"Lead successfully routed to {{ $json.selectedAgent.name }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-route-1",
+      "name": "Send Routing Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Routing Trigger": {
+      "main": [
+        [
+          {
+            "node": "Select Best Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Best Agent": {
+      "main": [
+        [
+          {
+            "node": "Notify Agent via Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Agent via Slack/Teams",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update CRM with Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Agent via Email": {
+      "main": [
+        [
+          {
+            "node": "Send Routing Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Agent via Slack/Teams": {
+      "main": [
+        [
+          {
+            "node": "Send Routing Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM with Assignment": {
+      "main": [
+        [
+          {
+            "node": "Send Routing Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

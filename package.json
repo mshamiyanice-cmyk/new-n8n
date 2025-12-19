@@ -1,0 +1,32 @@
+{
+  "name": "sambora-inquiry-management-demo",
+  "version": "1.0.0",
+  "description": "Intelligent inquiry management system demo for Sambora Kinigi Lodge - AI chatbot with lead qualification and routing",
+  "main": "index.js",
+  "scripts": {
+    "start": "n8n start",
+    "dev": "n8n start",
+    "import:workflows": "n8n import:workflow --input=./workflows",
+    "export:workflows": "n8n export:workflow --output=./workflows --all"
+  },
+  "keywords": [
+    "n8n",
+    "chatbot",
+    "AI",
+    "lead-qualification",
+    "lead-routing",
+    "customer-service",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "n8n": "^1.19.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

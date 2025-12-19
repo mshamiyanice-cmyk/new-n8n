@@ -1,0 +1,259 @@
+{
+  "name": "Sambora Chatbot - Main Conversation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook - Chat Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "sambora-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract user message and session data\nconst userMessage = $input.item.json.message || '';\nconst sessionId = $input.item.json.sessionId || $jmespath('[0].json.id', $input.all());\nconst userName = $input.item.json.userName || 'Guest';\n\n// Get conversation history from previous items or initialize\nconst conversationHistory = $input.item.json.conversationHistory || [];\n\n// Add user message to history\nconversationHistory.push({\n  role: 'user',\n  content: userMessage,\n  timestamp: new Date().toISOString()\n});\n\nreturn {\n  json: {\n    userMessage,\n    sessionId,\n    userName,\n    conversationHistory,\n    messageCount: conversationHistory.length\n  }\n};"
+      },
+      "id": "code-prepare-1",
+      "name": "Prepare Conversation Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4-turbo-preview\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful and enthusiastic assistant for Sambora Kinigi Lodge, a luxury boutique lodge near Volcanoes National Park in Rwanda. Your role is to help potential guests learn about gorilla trekking, accommodations, and book their once-in-a-lifetime adventure.\\n\\nKEY INFORMATION:\\n- Sambora Kinigi is a luxury all-inclusive lodge ($700/person/night)\\n- Gorilla permits cost $1,500 (30% discount Nov-May with conditions)\\n- Minimum age for gorilla trekking: 15 years\\n- Book permits 6 months in advance\\n- All-inclusive includes: meals, drinks, 45-min massage, cultural performances\\n- Location: Near Volcanoes National Park entrance in Kinigi, Rwanda\\n\\nYOUR PERSONALITY:\\n- Warm, welcoming, and enthusiastic\\n- Knowledgeable about gorilla trekking\\n- Professional but personable\\n- Use emojis sparingly (🦍 ⭐ ✨)\\n\\nYOUR GOALS:\\n1. Answer questions about gorilla trekking and accommodations\\n2. Highlight the unique value of Sambora Kinigi\\n3. Qualify leads by understanding their needs\\n4. Encourage bookings when appropriate\\n\\nWhen users show booking intent, collect:\\n- Travel dates\\n- Group size\\n- Name and email\\n- Special requests\\n\\nThen indicate you'll connect them with the reservations team.\\n\\nKeep responses concise but informative. Paint vivid pictures of the gorilla trekking experience.\"\n    },\n    {{ $json.conversationHistory.map(msg => `{\\\"role\\\": \\\"${msg.role}\\\", \\\"content\\\": \\\"${msg.content.replace(/\"/g, '\\\\\\\"')}\\\"}` ).join(',') }}\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "id": "openai-1",
+      "name": "OpenAI Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract AI response\nconst aiResponse = $input.item.json.choices[0].message.content;\n\n// Get conversation data from previous step\nconst conversationHistory = $('Prepare Conversation Data').item.json.conversationHistory;\n\n// Add AI response to history\nconversationHistory.push({\n  role: 'assistant',\n  content: aiResponse,\n  timestamp: new Date().toISOString()\n});\n\n// Analyze intent for lead qualification\nconst userMessage = $('Prepare Conversation Data').item.json.userMessage.toLowerCase();\nconst sessionId = $('Prepare Conversation Data').item.json.sessionId;\nconst userName = $('Prepare Conversation Data').item.json.userName;\n\n// Intent detection\nconst intents = {\n  booking: /\\b(book|reserve|availability|book now|make a booking)\\b/i.test(userMessage),\n  pricing: /\\b(cost|price|expensive|how much|rate|fee)\\b/i.test(userMessage),\n  permits: /\\b(permit|gorilla permit|booking permit)\\b/i.test(userMessage),\n  dates: /\\b(when|dates|available|visit in|traveling in|january|february|march|april|may|june|july|august|september|october|november|december|2024|2025)\\b/i.test(userMessage),\n  contact: /\\b(email|phone|call|contact|reach you|get in touch)\\b/i.test(userMessage)\n};\n\n// Calculate lead score based on intent signals\nlet leadScore = 0;\nif (intents.booking) leadScore += 30;\nif (intents.pricing) leadScore += 10;\nif (intents.permits) leadScore += 20;\nif (intents.dates) leadScore += 25;\nif (intents.contact) leadScore += 15;\n\n// Boost score based on message count (engagement)\nconst messageCount = conversationHistory.length / 2; // Divide by 2 for user messages only\nif (messageCount >= 3) leadScore += 15;\nif (messageCount >= 5) leadScore += 10;\n\n// Determine if this should trigger lead qualification\nconst shouldQualifyLead = leadScore >= 40 || intents.contact;\n\nreturn {\n  json: {\n    response: aiResponse,\n    sessionId,\n    userName,\n    conversationHistory,\n    intents,\n    leadScore,\n    shouldQualifyLead,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "code-process-1",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldQualifyLead }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-qualify-1",
+      "name": "Should Qualify Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/lead-qualification",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sessionId",
+              "value": "={{ $json.sessionId }}"
+            },
+            {
+              "name": "userName",
+              "value": "={{ $json.userName }}"
+            },
+            {
+              "name": "leadScore",
+              "value": "={{ $json.leadScore }}"
+            },
+            {
+              "name": "intents",
+              "value": "={{ JSON.stringify($json.intents) }}"
+            },
+            {
+              "name": "conversationHistory",
+              "value": "={{ JSON.stringify($json.conversationHistory) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "webhook-qualify-1",
+      "name": "Trigger Lead Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response\": \"{{ $json.response }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"leadScore\": {{ $json.leadScore }},\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-1",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "resource": "contact",
+        "additionalFields": {
+          "customFieldsUi": {
+            "customFieldValues": [
+              {
+                "fieldId": "lead_score",
+                "value": "={{ $json.leadScore }}"
+              },
+              {
+                "fieldId": "conversation_summary",
+                "value": "={{ JSON.stringify($json.conversationHistory) }}"
+              },
+              {
+                "fieldId": "last_interaction",
+                "value": "={{ $json.timestamp }}"
+              }
+            ]
+          }
+        },
+        "name": "={{ $json.userName }}",
+        "options": {}
+      },
+      "id": "store-conversation-1",
+      "name": "Store in Database",
+      "type": "n8n-nodes-base.n8nTrainingCustomerDatastore",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Chat Input": {
+      "main": [
+        [
+          {
+            "node": "Prepare Conversation Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Conversation Data": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Should Qualify Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Qualify Lead?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Lead Qualification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Store in Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Lead Qualification": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store in Database": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
