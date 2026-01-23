@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Live API - Audio Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #10b981;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .stats {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-error {
+            color: #ef4444;
+        }
+
+        .log-warning {
+            color: #f59e0b;
+        }
+
+        .log-info {
+            color: #10b981;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Gemini Live API - Audio Test</h1>
+        <p class="subtitle">Testing binary PCM16 audio streaming with proper byte alignment</p>
+
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="connectBtn" onclick="connect()">Connect</button>
+            <button class="btn-secondary" id="sendBtn" onclick="sendMessage()" disabled>Send Test Message</button>
+            <button class="btn-secondary" id="resetBtn" onclick="resetAudio()" disabled>Reset Audio</button>
+            <button class="btn-danger" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+
+        <div class="input-group">
+            <label for="messageInput">Test Message:</label>
+            <input
+                type="text"
+                id="messageInput"
+                placeholder="Type a message for Gemini..."
+                value="Tell me a short joke about programming"
+            >
+        </div>
+
+        <div class="alert alert-info">
+            <strong>🔍 Technical Test:</strong> This demo tests the fixes for PCM16 byte alignment, jitter buffering, and sample rate handling. Check the console for detailed logs.
+        </div>
+
+        <div class="stats">
+            <h3>📊 Real-time Statistics</h3>
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Connection</div>
+                    <div class="stat-value" id="statConnection">Idle</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Audio Packets</div>
+                    <div class="stat-value" id="statPackets">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Data Received</div>
+                    <div class="stat-value" id="statBytes">0 KB</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Split Samples</div>
+                    <div class="stat-value" id="statSplits">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Buffer Latency</div>
+                    <div class="stat-value" id="statLatency">0 ms</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Underflows</div>
+                    <div class="stat-value" id="statUnderflows">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <h3>📝 Console Log</h3>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script src="audio-player.js"></script>
+    <script src="gemini-api.js"></script>
+    <script>
+        let audioPlayer = null;
+        let geminiAPI = null;
+
+        // UI Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const connectBtn = document.getElementById('connectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const messageInput = document.getElementById('messageInput');
+        const logDiv = document.getElementById('log');
+
+        // Enhanced console logging
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addLogEntry(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            // Keep only last 100 entries
+            while (logDiv.children.length > 100) {
+                logDiv.removeChild(logDiv.firstChild);
+            }
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLogEntry(args.join(' '), 'info');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLogEntry(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLogEntry(args.join(' '), 'warning');
+        };
+
+        // Update statistics
+        function updateStats() {
+            if (!geminiAPI) return;
+
+            const stats = geminiAPI.getStats();
+
+            document.getElementById('statConnection').textContent =
+                stats.connected ? 'Connected' : 'Disconnected';
+            document.getElementById('statPackets').textContent = stats.audioPackets;
+            document.getElementById('statBytes').textContent =
+                (stats.audioBytes / 1024).toFixed(2) + ' KB';
+            document.getElementById('statSplits').textContent = stats.splitSamples;
+        }
+
+        // Connect to Gemini Live API
+        async function connect() {
+            try {
+                console.log('🚀 Starting connection...');
+
+                // Initialize audio player
+                audioPlayer = new AudioPlayer();
+                await audioPlayer.initialize();
+
+                // Set up stats callback
+                audioPlayer.onStats = (stats) => {
+                    document.getElementById('statLatency').textContent =
+                        stats.latency_ms.toFixed(1) + ' ms';
+                    document.getElementById('statUnderflows').textContent = stats.underflows;
+                };
+
+                // Initialize Gemini API client
+                geminiAPI = new GeminiLiveAPI(audioPlayer);
+
+                geminiAPI.onConnected = () => {
+                    console.log('✅ Connected to Gemini Live API');
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Connected';
+
+                    connectBtn.disabled = true;
+                    sendBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    disconnectBtn.disabled = false;
+
+                    updateStats();
+                };
+
+                geminiAPI.onDisconnected = () => {
+                    console.log('❌ Disconnected from Gemini Live API');
+                    statusDot.className = 'status-dot';
+                    statusText.textContent = 'Disconnected';
+
+                    connectBtn.disabled = false;
+                    sendBtn.disabled = true;
+                    resetBtn.disabled = true;
+                    disconnectBtn.disabled = true;
+                };
+
+                geminiAPI.onError = (error) => {
+                    console.error('Error:', error);
+                    statusDot.className = 'status-dot error';
+                };
+
+                geminiAPI.onServerContent = (content) => {
+                    console.log('📨 Server response:', content);
+                };
+
+                // Connect to proxy
+                await geminiAPI.connect('ws://localhost:8080/ws');
+
+                // Resume audio context (required by browsers)
+                await audioPlayer.resume();
+
+                // Start stats update
+                setInterval(updateStats, 1000);
+
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Send test message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            console.log('📤 Sending message:', message);
+            geminiAPI.sendText(message);
+        }
+
+        // Reset audio buffer
+        function resetAudio() {
+            console.log('🔄 Resetting audio buffer...');
+            audioPlayer.reset();
+        }
+
+        // Disconnect
+        function disconnect() {
+            console.log('🔌 Disconnecting...');
+
+            if (geminiAPI) {
+                geminiAPI.disconnect();
+            }
+
+            if (audioPlayer) {
+                audioPlayer.cleanup();
+            }
+        }
+
+        // Handle Enter key in input
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
+        });
+
+        console.log('🎯 Gemini Live API Demo ready');
+        console.log('📋 Click Connect to start testing audio streaming');
+    </script>
+</body>
+</html>
